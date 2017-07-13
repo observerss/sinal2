@@ -39,7 +39,7 @@ class Transer(object):
         self.symbols = symbols or get_all_symbols()
         self.out = open(out, 'w')
 
-    def update_symbol(self, symbol, bar):
+    def update_symbol(self, symbol, bar=None):
         try:
             r = self.client.get_trans(symbol, concurrency=10)
             if r:
@@ -50,13 +50,13 @@ class Transer(object):
         except Exception as e:
             log.exception(str(e))
         finally:
-            bar.update(1)
+            if bar:
+                bar.update(1)
 
     def run(self):
         if self.client.login():
-            bar = tqdm.tqdm(total=len(self.symbols), desc='overall',
-                leave=False, miniters=1)
-            exit(0)
+            # tqdm has bug here, let it be None at now
+            bar = None
             p = gevent.pool.Pool(5)
             for symbol in self.symbols:
                 p.spawn(self.update_symbol, symbol, bar)
