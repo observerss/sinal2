@@ -11,38 +11,8 @@ Sina Level2 Client & Parser, Usage::
 By default, if no on_data callback is found, L2Printer.on_data
 will be used to dump parsed info to stdout
 
-[2017-07-13T11:01:33] QUOTE 
-open    5.10    high    5.14    low     5.09    close   5.11    
-pclose  5.08    deals   7718    volume 658112   money   336405301.03
-bidavg  price   5.05    money   33587777.00     deals   2350    
-askavg  price   5.20    money   44195551.00     deals   4783    
-bidcan  volume 264492     money   134076804.09  deals   1167    
-askcan  volume 110291     money   56682185.15   deals   1260    
-bid1  5.11    32250    │   ask1  5.12    84671   
-bid2  5.10    21155    │   ask2  5.13    53060   
-bid3  5.09    85274    │   ask3  5.14    35293   
-bid4  5.08    46357    │   ask4  5.15    68748   
-bid5  5.07    15430    │   ask5  5.16    24637   
-bid6  5.06    23349    │   ask6  5.17    22991   
-bid7  5.05    20641    │   ask7  5.18    23083   
-bid8  5.04    6807     │   ask8  5.19    19258   
-bid9  5.03    18123    │   ask9  5.20    21678   
-bid10 5.02    5569     │   ask10 5.21    1781    
-[2017-07-13T11:01:30] ORDER 
-ask1 5.12 x 84671:
-    9490     118   10000    5000   10000   10000    1000      50      15      10
-      50      10      40      20    5000       1      10       6      50       4
-       2    5000      59     255       3      10      30       8     100      10
-       3      20   10000       2      70      40      89       5       6       1
-      20       1      50     120     200       3       1     100    1000     200
-bid1 5.11 x 32250:
-    6567     107   10000       2    3632       7       5      12       2      10
-   10000    1869       2       1      34
-[2017-07-13T11:01:36.500000] TRANS ▲ 5.12 x 100
-[2017-07-13T11:01:35.260000] TRANS ▼ 5.11 x 43
-[2017-07-13T11:01:35.750000] TRANS ▲ 5.12 x 83
-[2017-07-13T11:01:35.910000] TRANS ▲ 5.12 x 4
-[2017-07-13T11:01:35.960000] TRANS ▼ 5.11 x 1
+[2017-07-13T11:01:35.910000] TRANS sh601398 ▲ 5.12 x 4
+[2017-07-13T11:01:35.960000] TRANS sh601398 ▼ 5.11 x 1
 """
 import re
 import json
@@ -398,13 +368,14 @@ class L2Client(SinaClient):
         # '{}', # 汇总信息
     ]
     def __init__(self, username, password):
+        self.market_closed = False
         super(L2Client, self).__init__(username, password)
 
     def watch(self, symbols, on_data=None, parse=True):
         if not on_data:
             on_data = L2Printer.on_data
         wlist = self.make_watchlist(symbols)
-        while True:
+        while not self.market_closed:
             try:
                 self.run_websocket(symbols, wlist, on_data, parse)
             except:
@@ -469,7 +440,7 @@ class L2Client(SinaClient):
         t2.start()
                 
         # poll websocket data
-        while ws.connected:
+        while not self.market_closed and ws.connected:
             r, w, e = select.select((ws.sock,), (), (), 5)
             if r:
                 try:
@@ -524,8 +495,7 @@ class L2Client(SinaClient):
                     else:
                         return 0, 52
                 else:
-                    print(r)
-                return 0, len(ld)
+                    return get_page(page, bar)
             except (requests.exceptions.Timeout, requests.exceptions.ConnectionError):
                 return get_page(page, bar)
             except Exception as e:

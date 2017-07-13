@@ -17,8 +17,8 @@ def cli():
 @click.option('--symbol', '-s', 'symbols', multiple=True, help='symbols to watch')
 @click.option('--raw/--no-raw', default=False, is_flag=True, help='dump raw data')
 @click.option('--out', '-o', default=None, help='output file if needed')
-@click.argument('username')
-@click.argument('password')
+@click.argument('username', envvar='SINA_USERNAME')
+@click.argument('password', envvar='SINA_PASSWORD')
 def watch(username, password, symbols, raw, out):
     """ watch symbols """
     w = Watcher(username, password, symbols, raw, out)
@@ -28,8 +28,8 @@ def watch(username, password, symbols, raw, out):
 @cli.command()
 @click.option('--symbol', '-s', 'symbols', multiple=True, help='symbol to download')
 @click.option('--out', '-o', default=None, help='output file if needed')
-@click.argument('username')
-@click.argument('password')
+@click.argument('username', envvar='SINA_USERNAME')
+@click.argument('password', envvar='SINA_PASSWORD')
 def trans(username, password, symbols, out):
     """ download trans """
     t = Transer(username, password, symbols, out)

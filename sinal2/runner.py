@@ -8,6 +8,7 @@ import re
 import json
 import logging
 
+import tqdm
 import gevent
 import requests
 from .sinal2 import L2Client
@@ -38,20 +39,29 @@ class Transer(object):
         self.symbols = symbols or get_all_symbols()
         self.out = open(out, 'w')
 
-    def update_symbol(self, symbol):
-        r = self.client.get_trans(symbol, concurrency=10)
-        if r:
-            if self.out is None:
-                print(r)
-            else:
-                self.out.write(r)
+    def update_symbol(self, symbol, bar):
+        try:
+            r = self.client.get_trans(symbol, concurrency=10)
+            if r:
+                if self.out is None:
+                    print(r)
+                else:
+                    self.out.write(r)
+        except Exception as e:
+            log.exception(str(e))
+        finally:
+            bar.update(1)
 
     def run(self):
         if self.client.login():
+            bar = tqdm.tqdm(total=len(self.symbols), desc='overall',
+                leave=False, miniters=1)
+            exit(0)
             p = gevent.pool.Pool(5)
             for symbol in self.symbols:
-                p.spawn(self.update_symbol, symbol)
+                p.spawn(self.update_symbol, symbol, bar)
             p.join()
+            bar.close()
             self.out.close()
         else:
             log.error('login error')
@@ -85,6 +95,8 @@ class Watcher(object):
             elif isinstance(data, dict) or isinstance(data, list):
                 data = json.dumps(data).encode('utf-8')
             self.out.write(data)
+            if time.time() % 86400 > 7 * 3600 + 60:
+                self.client.market_closed = True
 
     def run(self):
         c = self.client
