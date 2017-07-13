@@ -1,0 +1,4 @@
+tqdm
+click
+requests
+websocket-client
