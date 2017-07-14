@@ -56,6 +56,7 @@ class Transer(object):
 
     def run(self):
         if self.client.login():
+            # tqdm has bug here, let it be None at now
             bar = None
             p = gevent.pool.Pool(5)
             for symbol in self.symbols:

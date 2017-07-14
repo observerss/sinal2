@@ -14,7 +14,7 @@
 ### 安装
 
 ```python
-pip install sinal2
+pip install python-sinal2
 ```
 
 ### 使用
