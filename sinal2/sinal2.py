@@ -453,7 +453,8 @@ class L2Client(SinaClient):
                 try:
                     op_code, data = ws.recv_data()
                 except websocket.WebSocketConnectionClosedException:
-                    log.error('network error, connection dropped')
+                    log.error('network error, symbols = {}'.format(
+                        ','.join(symbols)))
                     break
                 log.debug('recv {} {}'.format(op_code, data))
                 if op_code == self.OPCODE_CLOSE:
