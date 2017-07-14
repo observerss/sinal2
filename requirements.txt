@@ -1,4 +1,7 @@
 tqdm
+gpic
 click
+gevent
 requests
+wsaccel
 websocket-client

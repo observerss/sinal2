@@ -12,7 +12,7 @@ setup(name='python-sinal2',
       author_email='jingchaohu@gmail.com',
       url='http://github.com/observerss/sinal2',
       packages=find_packages(),
-      install_requires=['tqdm', 'requests', 'websocket-client', 'gevent'],
+      install_requires=['tqdm', 'requests', 'websocket-client', 'gevent', 'gipc', 'click', 'wsaccel'],
       python_requires='>=3.5',
       entry_points={
           'console_scripts': [

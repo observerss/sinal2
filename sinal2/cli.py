@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-from .runner import Watcher, Transer
+from .runner import Watcher, MultiProcessingWatcher, Transer
 from .sinal2 import L2Client
 
 import click
@@ -18,11 +18,16 @@ def cli():
 @click.option('--symbol', '-s', 'symbols', multiple=True, help='symbols to watch')
 @click.option('--raw/--no-raw', default=False, is_flag=True, help='dump raw data')
 @click.option('--out', '-o', default=None, help='output file if needed')
+@click.option('--core', '-c', type=int, default=1, help='num of cores(processes) to use')
+@click.option('--size', '-s', type=int, default=50, help='num of symbols per websocket')
 @click.argument('username', envvar='SINA_USERNAME')
 @click.argument('password', envvar='SINA_PASSWORD')
-def watch(username, password, symbols, raw, out):
+def watch(username, password, symbols, raw, out, size, core):
     """ watch symbols """
-    w = Watcher(username, password, symbols, raw, out)
+    if core == 1:
+        w = Watcher(username, password, symbols, raw, out, size)
+    else:
+        w = MultiProcessingWatcher(username, password, symbols, raw, out, size, core)
     w.run()
 
 

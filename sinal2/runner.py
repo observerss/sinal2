@@ -6,10 +6,13 @@ monkey.patch_all()
 
 import re
 import time
+import math
 import json
 import logging
+import functools
 
 import tqdm
+import gipc
 import gevent
 import requests
 from .sinal2 import L2Client
@@ -81,14 +84,13 @@ class Watcher(object):
     def ensure_file(self, out):
         return open(out, 'ab')
 
-    def split_symbols(self):
-        size = self.size
-        symbols_list = []
-        for i in range(len(self.symbols) // size + 1):
-            symbols = self.symbols[i*size:i*size+size]
-            if symbols:
-                symbols_list.append(symbols)
-        return symbols_list
+    def split(self, values, size):
+        result_list = []
+        for i in range(len(values) // size + 1):
+            vs = values[i*size:i*size+size]
+            if vs:
+                result_list.append(vs)
+        return result_list
 
     def on_data(self, data):
         if self.out:
@@ -110,7 +112,108 @@ class Watcher(object):
         parse = False if self.raw else True
 
         g = gevent.pool.Group()
-        for symbols in self.split_symbols():
+        for symbols in self.split(self.symbols, self.size):
             g.spawn(self.client.watch, symbols, on_data, parse)
         g.join()
         self.out.close()
+
+
+class MultiProcessingWatcher(Watcher):
+    """ uses multiple processes
+
+    it solves network error problem when 100% cpu is used
+    thus lags network(e.g. on Aliyun between 9:30-9:35)
+    if you have a strong cpu, you should be fine with plain Watcher
+    """
+    def __init__(self, username, password, symbols, raw, out, size=50, core=2):
+        assert core > 1 and isinstance(core, int)
+
+        self.client = L2Client(username, password)
+        self.symbols = symbols or get_all_symbols()
+        self.raw = raw
+        self.size = size
+        self.core = core
+        self.out = out
+        self.lock = gevent.lock.RLock()
+
+    def main_on_data(self, r, f):
+        while True:
+            try:
+                data = r.get()
+            except (gipc.GIPCClosed, EOFError):
+                break
+            if isinstance(data, str):
+                data = data.encode('utf-8')
+            elif isinstance(data, dict) or isinstance(data, list):
+                data = json.dumps(data).encode('utf-8')
+            with self.lock:
+                f.write(data)
+            if time.time() % 86400 > 7 * 3600 + 60:
+                self.client.market_closed = True
+
+    def child_on_data(self, w, data):
+        w.put(data)
+
+    def spawn_watchs(self, w, symbols_list):
+        parse = False if self.raw else True
+        on_data = functools.partial(self.child_on_data, w) if self.out else None
+        g = gevent.pool.Group()
+        for symbols in symbols_list:
+            g.spawn(self.client.watch, symbols, on_data, parse)
+        g.join()
+
+    def run(self):
+        c = self.client
+        if not c.login():
+            log.error('login failed')
+            return
+
+        symbols_list = self.split(self.symbols, self.size)
+        size = int(math.ceil(1. * len(symbols_list) / self.core))
+        child_sl = self.split(symbols_list, size)
+        f = open(self.out, 'ab') if self.out else None
+        ps, gs = [], []
+        for i in range(self.core):
+            r, w = gipc.pipe()
+            g = gevent.spawn(self.main_on_data, r, f)
+            p = gipc.start_process(target=self.spawn_watchs, args=(w, child_sl[i]))
+            ps.append(p)
+
+        for p in ps:
+            p.join()
+        for g in gs:
+            g.kill()
+            g.join()
+
+
+# class MultiProcessingWatcher(object):
+#     def __init__(self, *args):
+#         print(args)
+
+#     def writelet(self, w):
+#         # This function runs as a greenlet in the parent process.
+#         # Put a Python object into the write end of the transport channel.
+#         w.put(b'123')
+
+#     def readchild(self, r):
+#         # This function runs in a child process.
+#         # Read and validate object from the read end of the transport channel.
+#         while True:
+#             try:
+#                 data = r.get()
+#                 print(data)
+#             except (gipc.GIPCClosed, EOFError):
+#                 break
+
+#     def run(self):
+#         with gipc.pipe(duplex=True) as (readend, writeend):
+#             # Start 'writer' greenlet. Provide it with the pipe write end.
+#             g = gevent.spawn(self.readchild, readend)
+#             # Start 'reader' child process. Provide it with the pipe read end.
+#             p = gipc.start_process(target=self.writelet, args=(writeend,))
+#             # Wait for both to finish.
+#             g.join()
+#             time.sleep(1)
+#             p.terminate()
+#             p.join()
+
