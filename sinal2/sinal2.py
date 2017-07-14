@@ -423,15 +423,21 @@ class L2Client(SinaClient):
             while not stop_all.wait(interval):
                 token = self.get_token(symbols, wlist)
                 if ws and ws.connected:
-                    ws.send('*' + token)
                     log.debug('send new token: {}'.format(token))
+                    try:
+                        ws.send('*' + token)
+                    except:
+                        pass
             
         def keep_alive(interval=60):
             """ talk to server every 60s """
             while not stop_all.wait(interval):
                 if ws and ws.connected:
                     log.debug('send empty string')
-                    ws.send('')
+                    try:
+                        ws.send('')
+                    except BrokenPipeError:
+                        pass
 
         # run background workers
         t1 = threading.Thread(target=update_token)
