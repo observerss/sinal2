@@ -9,6 +9,7 @@ import logging
 @click.group()
 def cli():
     FORMAT = '%(asctime)-15s %(message)s'
+    logging.getLogger('requests').setLevel(logging.CRITICAL)
     logging.getLogger('urllib3').setLevel(logging.CRITICAL)
     logging.basicConfig(level=logging.INFO, format=FORMAT)
 
