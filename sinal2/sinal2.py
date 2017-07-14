@@ -447,7 +447,7 @@ class L2Client(SinaClient):
         t2.start()
                 
         # poll websocket data
-        while not self.market_closed and ws.connected:
+        while ws.connected:
             r, w, e = select.select((ws.sock,), (), (), 5)
             if r:
                 try:
@@ -466,6 +466,9 @@ class L2Client(SinaClient):
                         data = L2Parser.parse(data)  
                     on_data(data)
 
+            if self.market_closed:
+                break
+
 
         ws = None
         stop_all.set()
@@ -479,8 +482,8 @@ class L2Client(SinaClient):
         url = 'http://stock.finance.sina.com.cn/stock/api/openapi.php/' + \
             'StockLevel2Service.getTransactionList?symbol={}'.format(symbol) + \
             '&callback=jsonp&pageNum=52&page={}'
-        header = 'ticktime,id,index,symbol,intticktime,trade,' + \
-            'volume,amount,buynum,sellnum,iotype,tradechannel'
+        header = 'ticktime,symbol,trade,' + \
+            'volume,buynum,sellnum,iotype'
         rows = []
         headers = header.split(',')
 

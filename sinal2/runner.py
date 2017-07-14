@@ -60,7 +60,7 @@ class Transer(object):
     def run(self):
         if self.client.login():
             # tqdm has bug here, let it be None at now
-            bar = None
+            bar = tqdm.tqdm(total=len(self.symbols), desc='overall')
             p = gevent.pool.Pool(5)
             for symbol in self.symbols:
                 p.spawn(self.update_symbol, symbol, bar)
@@ -97,7 +97,7 @@ class Watcher(object):
             if isinstance(data, str):
                 data = data.encode('utf-8')
             elif isinstance(data, dict) or isinstance(data, list):
-                data = json.dumps(data).encode('utf-8')
+                data = json.dumps(data).encode('utf-8') + b'\n'
             self.out.write(data)
             if time.time() % 86400 > 7 * 3600 + 60:
                 self.client.market_closed = True
@@ -148,11 +148,11 @@ class MultiProcessingWatcher(Watcher):
                 data = json.dumps(data).encode('utf-8')
             with self.lock:
                 f.write(data)
-            if time.time() % 86400 > 7 * 3600 + 60:
-                self.client.market_closed = True
 
     def child_on_data(self, w, data):
         w.put(data)
+        if time.time() % 86400 > 7 * 3600 + 60:
+            self.client.market_closed = True
 
     def spawn_watchs(self, w, symbols_list):
         parse = False if self.raw else True
