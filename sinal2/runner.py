@@ -184,36 +184,3 @@ class MultiProcessingWatcher(Watcher):
         for g in gs:
             g.kill()
             g.join()
-
-
-# class MultiProcessingWatcher(object):
-#     def __init__(self, *args):
-#         print(args)
-
-#     def writelet(self, w):
-#         # This function runs as a greenlet in the parent process.
-#         # Put a Python object into the write end of the transport channel.
-#         w.put(b'123')
-
-#     def readchild(self, r):
-#         # This function runs in a child process.
-#         # Read and validate object from the read end of the transport channel.
-#         while True:
-#             try:
-#                 data = r.get()
-#                 print(data)
-#             except (gipc.GIPCClosed, EOFError):
-#                 break
-
-#     def run(self):
-#         with gipc.pipe(duplex=True) as (readend, writeend):
-#             # Start 'writer' greenlet. Provide it with the pipe write end.
-#             g = gevent.spawn(self.readchild, readend)
-#             # Start 'reader' child process. Provide it with the pipe read end.
-#             p = gipc.start_process(target=self.writelet, args=(writeend,))
-#             # Wait for both to finish.
-#             g.join()
-#             time.sleep(1)
-#             p.terminate()
-#             p.join()
-
