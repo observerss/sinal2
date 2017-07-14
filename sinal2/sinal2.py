@@ -404,6 +404,7 @@ class L2Client(SinaClient):
             return token
         else:
             log.error('token error: {}'.format(resp.text))
+            return self.get_token(symbols, wlist)
 
     def run_websocket(self, symbols, wlist, on_data=None, parse=True):
         log.info('running websocket for symbols = {}'.format(','.join(symbols)))
