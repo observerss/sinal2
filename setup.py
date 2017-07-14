@@ -5,7 +5,7 @@ from setuptools import find_packages
 from sinal2 import __version__
 
 
-setup(name='sinal2',
+setup(name='python-sinal2',
       version=__version__,
       description='Sina Level2 Data Fetcher',
       author='Jingchao Hu',
