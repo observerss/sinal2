@@ -19,7 +19,7 @@ def cli():
 @click.option('--raw/--no-raw', default=False, is_flag=True, help='dump raw data')
 @click.option('--out', '-o', default=None, help='output file if needed')
 @click.option('--core', '-c', type=int, default=1, help='num of cores(processes) to use')
-@click.option('--size', '-s', type=int, default=50, help='num of symbols per websocket')
+@click.option('--size', '-z', type=int, default=50, help='num of symbols per websocket')
 @click.argument('username', envvar='SINA_USERNAME')
 @click.argument('password', envvar='SINA_PASSWORD')
 def watch(username, password, symbols, raw, out, size, core):
